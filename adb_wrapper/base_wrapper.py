@@ -385,7 +385,8 @@ class BaseWrapper(object):
         def stop_queue():
             stdout_stop.set()
             stderr_stop.set()
-            p.terminate()
+            with ignored(OSError):
+                p.terminate()
             stdout_t.join()
             stderr_t.join()
         _cmdlist = self._cmdlist_convert(cmdlist)
@@ -433,11 +434,12 @@ class BaseWrapper(object):
                 if stderr_list:
                     stderr_str += ''.join(stderr_list)
                     stderr_list = []
-                for nodevice_re in self.nodevice_re_list:
-                    if nodevice_re.search(stderr_str):
-                        with ignored(OSError): p.kill()
-                        stop_queue()
-                        raise NoDeviceException
+                if cmdlist is not None: # raise no device exception when execute cmd
+	                for nodevice_re in self.nodevice_re_list:
+	                    if nodevice_re.find(stderr_str):
+	                        with ignored(OSError): p.kill()
+	                        stop_queue()
+	                        raise NoDeviceException
                 p.poll()
             stop_queue()
             with ignored(Empty):
